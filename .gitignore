@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env*
+!.env.example
+.supabase/
+*.local
+.DS_Store
+coverage/
+private/
+*.tsbuildinfo

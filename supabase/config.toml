@@ -1,0 +1,6 @@
+project_id = "training-lens"
+[auth]
+enable_signup = false
+[functions.sync-hevy]
+# Function explicitly validates either owner JWT or a separate schedule secret.
+verify_jwt = false
