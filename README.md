@@ -6,6 +6,8 @@ Training Lens is a personal training dashboard for Hevy workout data, built with
 
 **Optional cloud mode:** Supabase adds email/password access, saved context and remote scheduled syncing. The source code supports it, but live Supabase setup is not required for the free website.
 
+**Live website:** [Training Lens](https://crixppp.github.io/hevy/)
+
 ## Run
 
 Node 24, pnpm 11.25.0:
@@ -37,6 +39,6 @@ pnpm run audit:assets
 
 [Setup, costs, secret entry and hosting choice](docs/SETUP.md) · [Metric contract](docs/METRICS.md) · [Data model](docs/DATA_MODEL.md) · [API contract](docs/HEVY_API.md) · [Backup and maintenance](docs/MAINTENANCE.md) · [Verification and limitations](docs/VERIFICATION.md).
 
-Local implementation and synthetic browser checks are complete. Hosted Supabase authentication, the Edge runtime, live sync, scheduled execution and public deployment have **not** been verified. No private data was uploaded and the existing Mac sync was left untouched. Do not treat local SQL tests as a complete hosted security assessment.
+GitHub Pages deployment, the live demo, local-file import with synthetic records and cloud-free dashboard editing have been verified. All 29 tests pass locally and in GitHub Actions. Optional hosted Supabase authentication, the Edge runtime, live sync and scheduled execution have **not** been verified. No private data was uploaded and the existing Mac sync was left untouched. Do not treat local SQL tests as a complete hosted security assessment.
 
 GitHub Pages is the selected frontend host. The default build runs with local file import and the synthetic demo. Optional cloud setup remains documented separately; never put the Hevy key in public source or frontend variables.

@@ -2,11 +2,15 @@
 
 Update: Free local-file mode added for GitHub Pages. The suite now has 29 passing tests, including valid local exports, duplicate IDs and malformed source rejection. The original cloud verification limits below still apply to optional Supabase mode.
 
+## Verified hosted deployment
+
+Training Lens is live at https://crixppp.github.io/hevy/. GitHub Actions source checks and Pages deployment both completed successfully for the application commit. The public page title, demo overview and lazy chart rendering were checked in a real browser with no console errors. Browser-only file mode imported 63 synthetic workouts on the hosted page and successfully created dashboard context without a cloud account. Real personal workout records were not uploaded. The Chrome automation upload helper lacked an extension permission; the same file flow passed in the in-app browser.
+
 ## Verified locally
 
 - Official Hevy OpenAPI inspected, including auth, max page sizes, update/delete event shape, count endpoint and polling guidance. Existing sync script inspected without executing it or retrieving its key.
 - Existing private export checked in place for source IDs, structural validity and deterministic set totals. No real workout fixture was added to this repository or opened in a public preview.
-- 26 automated tests pass: 12 metric/forecast tests, 6 adapter/auth predicate tests, 8 database integration tests. Metrics use independent hand calculations (50 kg × 6 = 300 kg·reps and 60 kg Epley estimate). The integration tests execute the migration in PGlite, a local Postgres runtime, with synthetic auth tables/roles.
+- 29 automated tests pass: 12 metric/forecast tests, 6 adapter/auth predicate tests, 8 database integration tests, and 3 local-export tests. Metrics use independent hand calculations (50 kg × 6 = 300 kg·reps and 60 kg Epley estimate). The integration tests execute the migration in PGlite, a local Postgres runtime, with synthetic auth tables/roles.
 - Local direct SQL checks deny anon reads and private RPCs, return no rows for a second authenticated user, deny source writes by the owner, and isolate context CRUD. Tested overlap lease/cooldown, idempotent updates, deletion events and rollback of failed full reconciliation. These are real SQL/RLS checks, not a test of the login screen alone.
 - Production TypeScript and Vite builds passed in demo-only mode and with explicitly synthetic public Supabase configuration. The latter proves the backend-enabled branch bundles; it does not verify a Supabase connection.
 - The compiled production scan found no server credential identifiers or privileged-key patterns, and none of the real source workout IDs supplied for the private local scan. No Hevy key was retrieved, so no live secret was handled by the build. Build-time guards reject server keys in VITE variables, secret-key prefixes and legacy service-role JWTs.
@@ -18,7 +22,7 @@ The final compiled production build was also opened with the local Vite preview 
 
 ## Not yet verified
 
-No hosted service was provisioned and no private data was transferred. No source was pushed and no public deployment was triggered.
+GitHub Pages was deployed and source published to the owner’s public repository. No Supabase project was provisioned and no real workout data was transferred.
 
 The following require owner account actions and a real test project: SMTP/recovery delivery, genuine sign-in and token expiry, Edge Function deployment/runtime and CORS, hosted direct REST access as anon/non-owner, live read-only Hevy import, source correction/deletion against real API responses, daily scheduled invocation across actual DST changes, cron/pg_net diagnostics, production response cache headers and hosted route behavior. A local passing test suite does not establish full production security.
 
