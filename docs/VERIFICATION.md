@@ -1,6 +1,6 @@
 # Verification record · 21 October 2026
 
-Mac bridge update: 31 TypeScript tests and 10 Python helper tests pass. The installed login helper completed a real read-only Hevy refresh and returned a complete export. Direct live checks rejected absent capabilities, wrong Hosts, foreign Origins and cross-origin preflight. Browser transfer, persistence and final hosted checks are recorded below after verification.
+Mac bridge update: 31 TypeScript tests and 10 Python helper tests pass. The installed login helper completed a real read-only Hevy refresh and returned a complete export. Direct live checks rejected absent capabilities, wrong Hosts, foreign Origins and cross-origin preflight. The deployed dashboard received the real Mac snapshot through the local window; the MAC SNAPSHOT badge and sync timestamp were verified. Reload restored the snapshot without reconnecting. A temporary dashboard block survived reload and was removed afterward. No new browser errors were recorded. Both GitHub source checks and Pages deployment completed successfully. The helper is registered as a running user login service, listens only on 127.0.0.1, and its installed source matches the reviewed repository file.
 
 Update: Free local-file mode added for GitHub Pages. The suite now has 29 passing tests, including valid local exports, duplicate IDs and malformed source rejection. The original cloud verification limits below still apply to optional Supabase mode.
 
