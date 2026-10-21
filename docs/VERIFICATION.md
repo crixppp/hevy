@@ -1,5 +1,7 @@
 # Verification record · 21 October 2026
 
+Mac bridge update: 31 TypeScript tests and 10 Python helper tests pass. The installed login helper completed a real read-only Hevy refresh and returned a complete export. Direct live checks rejected absent capabilities, wrong Hosts, foreign Origins and cross-origin preflight. Browser transfer, persistence and final hosted checks are recorded below after verification.
+
 Update: Free local-file mode added for GitHub Pages. The suite now has 29 passing tests, including valid local exports, duplicate IDs and malformed source rejection. The original cloud verification limits below still apply to optional Supabase mode.
 
 ## Verified hosted deployment

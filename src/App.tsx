@@ -1,3 +1,9 @@
+import {
+  connectMac,
+  readMacCache,
+  writeMacCache,
+  clearMacCache,
+} from "./macBridge";
 import { parseLocalExport } from "./localImport";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -113,9 +119,9 @@ function Chart(props: React.ComponentProps<typeof LazyChart>) {
 }
 function App() {
   const localFileInput = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<"login" | "demo" | "local" | "private">(
-      "login",
-    ),
+  const [mode, setMode] = useState<
+      "login" | "demo" | "local" | "mac" | "private"
+    >("login"),
     [page, setPage] = useState("overview"),
     [mobile, setMobile] = useState(false),
     [theme, setTheme] = useState(
@@ -276,6 +282,82 @@ function App() {
     window.addEventListener("hashchange", listener);
     return () => window.removeEventListener("hashchange", listener);
   }, []);
+  useEffect(() => {
+    if (backend) return;
+    const g = generation.current;
+    void readMacCache()
+      .then((cache) => {
+        if (!cache || generation.current !== g) return;
+        const snapshot = parseLocalExport(JSON.stringify(cache));
+        generation.current++;
+        setWorkouts(snapshot.workouts);
+        setEntries(cache.entries ?? []);
+        setSync({
+          last_success: cache.synced_at,
+          last_full: cache.synced_at,
+          last_attempt: cache.last_attempt,
+          error: cache.sync_error,
+          received_at: cache.received_at,
+        });
+        setMode("mac");
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (mode !== "mac" || !sync?.received_at) return;
+    void writeMacCache({
+      version: 1,
+      workouts,
+      entries,
+      synced_at: sync.last_success ?? null,
+      received_at: sync.received_at,
+      last_attempt: sync.last_attempt ?? null,
+      sync_error: sync.error ?? null,
+    }).catch(() =>
+      setNotice(
+        "Browser storage could not save this snapshot. Keep this tab open or reconnect to your Mac later.",
+      ),
+    );
+  }, [mode, workouts, entries, sync]);
+  async function refreshFromMac() {
+    setBusy(true);
+    try {
+      const value = await connectMac();
+      const existing = mode === "mac";
+      generation.current++;
+      setWorkouts(value.workouts);
+      if (!existing) setEntries([]);
+      setMode("mac");
+      setUser(null);
+      setSync({
+        last_success: value.synced_at,
+        last_full: value.synced_at,
+        last_attempt: value.last_attempt,
+        error: value.sync_error,
+        received_at: new Date().toISOString(),
+      });
+      setNotice(
+        value.sync_error
+          ? `Previous complete snapshot received from your Mac. Latest refresh failed: ${value.sync_error}`
+          : "Snapshot received from your Mac and saved on this browser. The Hevy API key stayed in Keychain.",
+      );
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Mac connection failed. Your previous snapshot remains available.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function forgetMac() {
+    await clearMacCache();
+    clear();
+    setNotice(
+      "Saved Mac snapshot and dashboard context cleared from this browser.",
+    );
+  }
   function navigate(id: string) {
     setPage(id);
     location.hash = "/" + id;
@@ -293,7 +375,7 @@ function App() {
     setNotice("");
   }
   async function save(kind: MetaKind, data: Record<string, any>, id?: string) {
-    if (mode === "demo" || mode === "local") {
+    if (mode === "demo" || mode === "local" || mode === "mac") {
       setEntries((es) =>
         id
           ? es.map((e) => (e.id === id ? { ...e, data } : e))
@@ -315,7 +397,7 @@ function App() {
     await load();
   }
   async function remove(entry: Entry) {
-    if (mode === "demo" || mode === "local")
+    if (mode === "demo" || mode === "local" || mode === "mac")
       setEntries((es) => es.filter((e) => e.id !== entry.id));
     else {
       const { error } = await backend!
@@ -357,6 +439,10 @@ function App() {
     }
   }
   async function syncNow() {
+    if (mode === "mac") {
+      void refreshFromMac();
+      return;
+    }
     if (mode === "local") {
       localFileInput.current?.click();
       return;
@@ -1659,12 +1745,13 @@ function App() {
                   <dd>{sync?.error ?? "None recorded"}</dd>
                 </dl>
                 <p className="muted">
-                  {mode === "local"
-                    ? "File mode has no scheduled sync. Open an updated export to refresh records. Optional cloud mode: "
-                    : ""}
-                  Daily at 9:17 pm Melbourne time. Incremental events with a
-                  five-minute overlap; full reconciliation every seven days.
-                  Data changes commit atomically after all pages succeed.
+                  {mode === "mac"
+                    ? "On-demand Mac sync. This is the last complete snapshot, not a continuously live connection. Refresh from Mac when you want newer data."
+                    : mode === "local"
+                      ? "File mode has no scheduled sync. Open an updated export to refresh records."
+                      : mode === "private"
+                        ? "Daily at 9:17 pm Melbourne time. Incremental events with a five-minute overlap; full reconciliation every seven days. Data changes commit atomically after all pages succeed."
+                        : "Synthetic demo data has no live sync."}
                 </p>
               </Panel>
             </div>
@@ -1714,7 +1801,10 @@ function App() {
               <div className="settings-row">
                 <div>
                   <h3>Appearance</h3>
-                  <p>Only your theme preference is stored on this browser.</p>
+                  <p>
+                    Your theme preference is stored here. Mac mode also saves
+                    the last received workout snapshot and dashboard context.
+                  </p>
                 </div>
                 <button
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -1749,7 +1839,9 @@ function App() {
                   <h3>Account & storage</h3>
                   <p>
                     {mode !== "private"
-                      ? "Changes are held in memory and reset when you leave. Export dashboard context before leaving."
+                      ? mode === "mac"
+                        ? "The latest Mac snapshot and dashboard context are stored in this browser. Refresh from Mac when you want newer data."
+                        : "Changes are held in memory and reset when you leave. Export dashboard context before leaving."
                       : "Sessions and personal response data stay in memory. Signing out clears the dashboard."}
                   </p>
                 </div>
@@ -1764,7 +1856,34 @@ function App() {
                     ? "demo"
                     : mode === "local"
                       ? "local file"
-                      : "account"}
+                      : mode === "mac"
+                        ? "snapshot"
+                        : "account"}
+                </button>
+              </div>
+            </Panel>
+            <Panel title="Mac connection & saved data">
+              <p className="muted">
+                The Mac helper reads Hevy through Keychain. This website stores
+                the last received snapshot on this browser; it does not publish
+                it to GitHub. A snapshot is not a live connection. Check its
+                sync timestamp.
+              </p>
+              <div className="inline-actions">
+                <button disabled={busy} onClick={() => void refreshFromMac()}>
+                  Refresh from Mac
+                </button>
+                <button
+                  className="danger"
+                  onClick={() =>
+                    void forgetMac().catch(() =>
+                      setNotice(
+                        "Could not clear browser storage. Please use your browser site-data settings.",
+                      ),
+                    )
+                  }
+                >
+                  Forget saved Mac data
                 </button>
               </div>
             </Panel>
@@ -1905,6 +2024,19 @@ function App() {
             onDone={() => setRecovery(false)}
             onNotice={setNotice}
           />
+          <button
+            className="primary local-import-button"
+            disabled={busy}
+            onClick={() => void refreshFromMac()}
+          >
+            {busy ? "Waiting for Mac…" : "Connect to my Mac"}
+            <RefreshCw size={17} />
+          </button>
+          <p className="footnote">
+            Uses your localhost helper. The last received snapshot and dashboard
+            context are saved on this browser, so they remain available while
+            your Mac is offline.
+          </p>
           <button className="demo-button" onClick={() => void demo()}>
             Explore the synthetic demo <ArrowRight size={17} />
           </button>
@@ -1996,7 +2128,9 @@ function App() {
                   ? "Synthetic data workspace"
                   : mode === "local"
                     ? "Local export · session only"
-                    : "Owner access only"}
+                    : mode === "mac"
+                      ? "Last snapshot saved on this browser"
+                      : "Owner access only"}
               </small>
             </div>
           </div>
@@ -2013,10 +2147,14 @@ function App() {
                 ? "Demo workspace"
                 : mode === "local"
                   ? "Local export"
-                  : "Your workspace"}
+                  : mode === "mac"
+                    ? "Mac snapshot"
+                    : "Your workspace"}
               <small>
                 {mode !== "private"
-                  ? "Changes stay in memory"
+                  ? mode === "mac"
+                    ? "Snapshot saved on this browser"
+                    : "Changes stay in memory"
                   : "Connected to Supabase"}
               </small>
             </span>
@@ -2051,7 +2189,9 @@ function App() {
                 ? "SYNTHETIC DEMO"
                 : mode === "local"
                   ? "LOCAL HEVY EXPORT"
-                  : "PRIVATE ACCOUNT"}
+                  : mode === "mac"
+                    ? "MAC SNAPSHOT"
+                    : "PRIVATE ACCOUNT"}
             </span>
             <button
               className="icon-button"
@@ -2092,7 +2232,9 @@ function App() {
                 ? "Syncing…"
                 : mode === "local"
                   ? "Open updated export"
-                  : "Sync now"}
+                  : mode === "mac"
+                    ? "Refresh from Mac"
+                    : "Sync now"}
             </button>
           </div>
           <div className="filterbar">
@@ -2170,12 +2312,14 @@ function App() {
                 ? "Synthetic example · fixed reference date 21 Oct 2026"
                 : mode === "local"
                   ? "Local export · no automatic sync"
-                  : sync?.last_success
-                    ? "Last successful sync " +
-                      new Date(sync.last_success).toLocaleString("en-AU", {
-                        timeZone: "Australia/Melbourne",
-                      })
-                    : "No successful sync recorded"}
+                  : mode === "mac"
+                    ? `Mac snapshot · synced ${sync?.last_success ? new Date(sync.last_success).toLocaleString("en-AU", { timeZone: "Australia/Melbourne" }) : "time unavailable"} · saved on this browser`
+                    : sync?.last_success
+                      ? "Last successful sync " +
+                        new Date(sync.last_success).toLocaleString("en-AU", {
+                          timeZone: "Australia/Melbourne",
+                        })
+                      : "No successful sync recorded"}
             </span>
             <button className="text-button" onClick={() => navigate("methods")}>
               How is this calculated? <ArrowUpRight size={13} />
@@ -2267,8 +2411,8 @@ function Auth({
     <form onSubmit={submit}>
       {!configured && (
         <p className="setup-note">
-          Open a local export or explore the demo for free. Cloud account access
-          is optional and is not configured.
+          Connect to your Mac, open a local export or explore the demo for free.
+          Cloud account access is optional and is not configured.
         </p>
       )}
       {configured && (

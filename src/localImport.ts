@@ -4,6 +4,8 @@ export function parseLocalExport(text: string): {
   workouts: Workout[];
   synced_at: string | null;
 } {
+  if (text.length > 25 * 1024 * 1024)
+    throw Error("Export exceeds the 25 MB limit.");
   const data = JSON.parse(text);
   if (!data || !Array.isArray(data.workouts))
     throw Error("Choose a Hevy JSON export containing a workouts array.");

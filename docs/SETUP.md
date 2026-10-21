@@ -1,6 +1,10 @@
 # Setup and deployment
 
-## Free GitHub Pages setup (selected)
+## Free Mac connection (selected)
+
+Use the [local Mac helper](LOCAL_MAC.md) with the GitHub Pages frontend. The Hevy key stays in Keychain; **Refresh from Mac** transfers a snapshot to the browser. The browser keeps the last received snapshot and context until cleared. No Supabase project is needed.
+
+## Free file-only alternative
 
 The default website needs no Supabase account. Choose **Open my Hevy export** and select the JSON file created by your existing Mac sync. The app reads it on your device; it does not upload the file. All dashboard features use that imported dataset. Context edits stay in memory; export them before closing/reloading. Refresh records by opening an updated export. This mode does not automatically sync while your Mac is off.
 
